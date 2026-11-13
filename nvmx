@@ -1,7 +1,7 @@
 -- Loader tetap: cek commit terbaru, lalu ambil script dari URL commit tersebut.
 assert(type(loadstring) == "function", "[NVM-X] Executor tidak menyediakan loadstring setelah update.")
 -- ISI dengan repository GitHub tempat kamu meng-upload file ini, format "pemilik/nama-repo".
-local repository = "GANTI-PEMILIK/GANTI-REPO"
+local repository = "mathwsst-png/nvm"
 assert(not repository:find("GANTI", 1, true), "[NVM-X] Isi variabel `repository` di loader ini dulu (contoh: \"akunmu/nvmx\"), atau jalankan nvmx-main.lua langsung.")
 local httpService = game:GetService("HttpService")
 local lastError = "respons kosong"
