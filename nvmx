@@ -41,13 +41,16 @@ local function download(url)
 end
 
 local function latestSource()
-    local refUrl = "https://api.github.com/repos/" .. repository .. "/git/ref/heads/main?update=" .. httpService:GenerateGUID(false)
-    local ref = httpService:JSONDecode(download(refUrl))
-    local commit = type(ref) == "table" and type(ref.object) == "table" and ref.object.sha
-    if type(commit) ~= "string" or #commit ~= 40 or not commit:match("^%x+$") then
-        local reason = type(ref) == "table" and ref.message or "respons metadata tidak valid"
-        error("Gagal mengecek update GitHub: " .. tostring(reason), 0)
-    end
+    -- Utama: cek commit terbaru lewat GitHub API. Cadangan: langsung dari branch main
+    -- (dipakai kalau API diblokir executor / kena batas rate).
+    local okRef, commit = pcall(function()
+        local refUrl = "https://api.github.com/repos/" .. repository .. "/git/ref/heads/main?update=" .. httpService:GenerateGUID(false)
+        local ref = httpService:JSONDecode(download(refUrl))
+        local sha = type(ref) == "table" and type(ref.object) == "table" and ref.object.sha
+        assert(type(sha) == "string" and #sha == 40 and sha:match("^%x+$"), "metadata tidak valid")
+        return sha
+    end)
+    if not okRef then commit = "refs/heads/main" end
     return download("https://raw.githubusercontent.com/" .. repository .. "/" .. commit .. "/nvmx-main.lua"), commit
 end
 
@@ -56,7 +59,7 @@ for attempt = 1, 3 do
     if ok then
         local fn, compileError = loadstring(source, "nvmx-main")
         if not fn then error("[NVM-X] Script terbaru gagal dikompilasi: " .. tostring(compileError), 0) end
-        print("[NVM-X] Menjalankan commit " .. commit:sub(1, 8))
+        print("[NVM-X] Menjalankan " .. (#commit == 40 and ("commit " .. commit:sub(1, 8)) or commit))
         -- Error runtime tidak memicu eksekusi ulang atau aksi game ganda.
         local ran, result = xpcall(fn, function(err)
             if debug and type(debug.traceback) == "function" then return debug.traceback(tostring(err), 2) end
